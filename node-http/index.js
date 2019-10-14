@@ -1,15 +1,51 @@
 const http = require('http');   //this is to include httpmodule
+const fs = require('fs');
+const path = require('path');
 
 const hostname = 'localhost';   //varaible declaration
 const port = 3000;              //setting port variable to 3000
 
-const server = http.createServer((req, res) => {     //creating a server with request and respone
-    console.log(req.headers);                        //this isto log the header
-    res.statusCode = 200;                            // statuscode = 200 means everything is kay in network
-    res.setHeader('Content-Type', 'text/html');       //setting the header as content type
-    res.end('<html><body><h1>Hello, World!</h1></body></html>');     //this is the response which will be returned
-})
 
-server.listen(port, hostname, () => {              //this is to start the server
-  console.log(`Server running at http://${hostname}:${port}/`);     //backtick and combination of $ bracket means acces the varaible value
-});
+
+const server = http.createServer((req, res) => {
+    console.log('Request for ' + req.url + ' by method ' + req.method);
+  
+    if (req.method == 'GET') {
+      var fileUrl;
+      if (req.url == '/') fileUrl = '/index.html';
+      else fileUrl = req.url;
+  
+      var filePath = path.resolve('./public'+fileUrl);
+      const fileExt = path.extname(filePath);
+      if (fileExt == '.html') {
+        fs.exists(filePath, (exists) => {
+          if (!exists) {
+            res.statusCode = 404;
+            res.setHeader('Content-Type', 'text/html');
+            res.end('<html><body><h1>Error 404: ' + fileUrl + 
+                        ' not found</h1></body></html>');
+            return;
+          }
+          res.statusCode = 200;
+          res.setHeader('Content-Type', 'text/html');
+          fs.createReadStream(filePath).pipe(res);
+        });
+      }
+      else {
+        res.statusCode = 404;
+        res.setHeader('Content-Type', 'text/html');
+        res.end('<html><body><h1>Error 404: ' + fileUrl + 
+                ' not a HTML file</h1></body></html>');
+      }
+    }
+    else {
+        res.statusCode = 404;
+        res.setHeader('Content-Type', 'text/html');
+        res.end('<html><body><h1>Error 404: ' + req.method + 
+                ' not supported</h1></body></html>');
+    }
+  })
+
+  server.listen(port, hostname, () => {
+    console.log(`Server running at http://${hostname}:${port}/`);
+  });
